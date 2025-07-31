@@ -23,6 +23,20 @@ Class Generators extends BeforeAndAfter{
 				"link_icon"=>"fa-eye",
 				"link_page"=>$page,
 				"link_right"=>"V",
+			),
+			array(
+				"link_name"=>"Add Purchase Transactions", 
+				"link_address"=>"generators/add-purchase-transaction",
+				"link_icon"=>"fa-plus",
+				"link_page"=>$page,
+				"link_right"=>"V",
+			),
+			array(
+				"link_name"=>"Vie Purchase Transactions", 
+				"link_address"=>"generators/view-purchase-transactions",
+				"link_icon"=>"fa-list",
+				"link_page"=>$page,
+				"link_right"=>"V",
 			)
 		);
 		
@@ -584,6 +598,178 @@ public function addGlAccountAction(){
 
 		FeedBack::redirect(return_url().'generators/add-generator');
 	}
+
+	public function addPurchaseTransactionAction() {
+		?>
+		<div class="container-fluid">
+			<div class="row">
+				<form>
+
+					<div class="col-md-4">
+						<label>FDN</label>
+						<input type="text" id="fdn" class="form-control"/>
+					</div>
+
+					<div class="col-md-2">
+						<label>Transaction Type</label>
+						<?php $types = ['INVOICE', 'CREDIT NOTE', 'DEBIT NOTE']; ?>
+						<select id="transaction_type" class="form-control">
+							<?php foreach ($types as $type): ?>
+								<option value="<?= $type ?>"><?= $type ?></option>
+							<?php endforeach; ?>
+						</select>
+					</div>
+
+					<div class="col-md-2">
+						<label>Year</label>
+						<select name="year" id="year" class="form-control">
+							<option>Select</option>
+							<?php
+							for ($i = 2019; $i <= date('Y'); $i++) {
+								$selected = ($i == ($year_uploaded ?? date('Y'))) ? 'selected' : '';
+								echo "<option value=\"$i\" $selected>$i</option>";
+							}
+							?>
+						</select>
+					</div>
+
+					<div class="col-md-2">
+						<label>Month</label>
+						<select name="month" id="month" class="form-control">
+							<option>Select</option>
+							<?php
+							for ($i = 1; $i <= 12; $i++) {
+								$selected = ($i == ($month_uploaded ?? date('m'))) ? 'selected' : '';
+								echo "<option value=\"$i\" $selected>" . month_name($i) . "</option>";
+							}
+							?>
+						</select>
+					</div>
+
+					<div class="col-md-12 mt-3">
+						<label>Generator</label>
+						<select name="generator" id="generator" class="form-control">
+							<option>Select</option>
+							<?php
+							$db = new Db();
+							$generators = $db->select('SELECT * FROM generators ORDER BY ge_name ASC');
+							foreach ($generators[0] as $generator) {
+								extract($generator);
+								echo "<option value=\"$ge_id\">$ge_name</option>";
+							}
+							?>
+						</select>
+					</div>
+
+				</div>
+
+				<div class="row mt-3">
+					<div class="col-md-3">
+						<label>Date</label>
+						<input type="text" id="date" class="form-control"/>
+					</div>
+					<div class="col-md-3">
+						<label>Exchange Rate</label>
+						<input type="text" id="exchange_rate" class="form-control"/>
+					</div>
+					<div class="col-md-3">
+						<label>Deemed Energy</label>
+						<input type="text" id="deemed_energy" class="form-control"/>
+					</div>
+				</div>
+
+				<div class="row mt-3">
+					<div class="col-md-3">
+						<label>Quantity</label>
+						<input type="text" id="qty" class="form-control"/>
+					</div>
+					<div class="col-md-3">
+						<label>VAT</label>
+						<input type="text" id="vat" class="form-control"/>
+					</div>
+					<div class="col-md-3">
+						<label>Amount</label>
+						<input type="text" id="amount" class="form-control"/>
+					</div>
+					<div class="col-md-3">
+						<label>Total</label>
+						<input type="text" id="total" class="form-control"/>
+					</div>
+				</div>
+
+				<div class="row mt-4"><br/>
+					<div class="col-lg-2">
+						<div class="form-group">
+							<button type="submit" name="submit" class="btn btn-primary" id="saveBtn">
+								<i class="fa fa-fw fa-save"></i> Save
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</form>
+
+		<script>
+			$(document).ready(function() {
+				$('#saveBtn').on('click', function(e) {
+					e.preventDefault();
+
+					// Basic validation
+					let errors = [];
+					const fdn = $('#fdn').val().trim();
+					const transaction_type = $('#transaction_type').val();
+					const year = $('#year').val();
+					const month = $('#month').val();
+					const generator = $('#generator').val();
+					const date = $('#date').val().trim();
+					const exchange_rate = $('#exchange_rate').val().trim();
+					const deemed_energy = $('#deemed_energy').val().trim();
+					const qty = $('#qty').val().trim();
+					const vat = $('#vat').val().trim();
+					const amount = $('#amount').val().trim();
+					const total = $('#total').val().trim();
+
+					// Required fields check
+					if (!fdn) errors.push('FDN is required.');
+					if (!transaction_type) errors.push('Transaction type is required.');
+					if (!year || year === 'Select') errors.push('Year is required.');
+					if (!month || month === 'Select') errors.push('Month is required.');
+					if (!generator || generator === 'Select') errors.push('Generator is required.');
+					if (!date) errors.push('Date is required.');
+					if (!exchange_rate || isNaN(exchange_rate)) errors.push('Exchange rate must be a number.');
+					if (!deemed_energy || isNaN(deemed_energy)) errors.push('Deemed energy must be a number.');
+					if (!qty || isNaN(qty)) errors.push('Quantity must be a number.');
+					if (!vat || isNaN(vat)) errors.push('VAT must be a number.');
+					if (!amount || isNaN(amount)) errors.push('Amount must be a number.');
+					if (!total || isNaN(total)) errors.push('Total must be a number.');
+
+					if (errors.length > 0) {
+						alert(errors.join('\n'));
+						return;
+					}
+
+					// If valid, send AJAX
+					$.ajax({
+						url: "<?php echo return_url().'ajax/process_purchase.php'; ?>",
+						type: 'POST',
+						data: {
+							fdn, transaction_type, year, month, generator, date,
+							exchange_rate, deemed_energy, qty, vat, amount, total
+						},
+						success: function(response) {
+							alert('Saved successfully: ' + response);
+						},
+						error: function(xhr, status, error) {
+							alert('Error: ' + error);
+						}
+					});
+				});
+			});
+			</script>
+
+		<?php
+	}
+
 
 	public function bill(){
 

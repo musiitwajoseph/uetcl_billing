@@ -8921,6 +8921,11 @@ td .formula-space:hover .formula-message .area{
   animation: expiredA 1s linear infinite;
 }
 
+form label{
+  margin-top:10px !important;
+  padding-top:10px !important;
+}
+
 @keyframes expiredA {
   50% {
     opacity: 0;
