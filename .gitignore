@@ -1,0 +1,59 @@
+# Ignore system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDEs/editors
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS and backup files
+.DS_Store
+*.bak
+*.tmp
+*.swp
+*.log
+
+# Composer vendor directory
+/vendor/
+
+# Environment config
+.env
+.env.*
+
+# Cache, sessions, logs (Laravel or similar)
+storage/
+bootstrap/cache/
+
+# Node dependencies (if using frontend tooling)
+node_modules/
+
+# PHPUnit test results
+.phpunit.result.cache
+
+# XAMPP / Windows specific
+*.zip
+*.tar.gz
+*.rar
+*.7z
+*.exe
+
+# Logs and error files
+*.log
+
+# Database dumps
+*.sql
+*.sqlite
+classes/Db.php
+
+# Coverage reports
+coverage/
+
+# Composer lock (optional - if your team prefers fresh installs)
+# composer.lock
+
+# Other temp folders
+tmp/
+cache/

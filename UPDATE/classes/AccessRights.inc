@@ -1,0 +1,620 @@
+<?php 
+//include "Db.php";
+Class AccessRights extends BeforeAndAfter{
+
+	public function getLinks(){
+		$page = "USER ROLES AND PRIVILEGES";
+		$links = array(			
+			array(
+				"link_name"=>"User Rights & Privileges", 
+				"link_address"=>"access-rights/all-user-rights-and-privileges",
+				"link_icon"=>"fa-eye",
+				"link_page"=>$page,
+				"link_right"=>"A",
+			)
+		);
+		
+		return $links;
+	}
+	
+	public $pages = array(
+	'USERS',
+	'AUDIT TRAIL',
+	'DEPARTMENTS',	
+	'USER ROLES AND PRIVILEGES',	
+	'REPORTS',
+	'DEPARTMENTS'
+	);
+	
+	public $controls = array('A'=>'ADD', 'V'=>'View', 'E'=>'Edit / Modify', 'P'=>'Print', 'I'=>'Import', 'X'=>'Export');
+
+	//public $controls = array('A'=>'ADD', 'V'=>'View', 'E'=>'Edit / Modify', 'D'=>'Deactivate', 'P'=>'Print', 'I'=>'Import', 'X'=>'Export');
+	
+	public $roles = "";
+		
+	public function __construct(){
+		
+		$this->getUserRoles();
+		
+		//echo $val = 'CREATE TABLE access_rights (ar_id INT PRIMARY KEY AUTO_INCREMENT, ar_role_id INT, ar_page INT, ar_a INT, ar_v INT, ar_e INT, ar_d INT, ar_p INT, ar_i INT, ar_x INT);';
+		
+		//echo $val = '<BR/><BR/>CREATE TABLE user_role (ur_id INT PRIMARY KEY AUTO_INCREMENT, ur_name VARCHAR(100), ur_added_by INT, ur_date_added INT);';
+	}
+	
+	public function check($page, $privilege){
+		
+		$page =str_replace(' ', '_', strtolower($this->pages[$i]));		
+		$val = "SELECT $privilege FROM access_rights WHERE page = '$page';";
+	}
+	
+	public function getUserRights($user_role){
+		$users = array();
+		$db = new Db();
+	$sql = "SELECT user_surname, user_othername FROM sysuser WHERE user_role = '$user_role'";
+		$select = $db->select($sql);
+		
+		if($db->num_rows()){
+			foreach($select[0] as $row){
+				extract($row);
+				$users[] = $user_surname.' '.$user_othername;
+			}
+		}
+		return $users;
+	}
+	
+	public function getUserRoles(){
+		$db = new Db();
+		$sql = "SELECT ur_id, ur_name, ur_added_by, ur_date_added FROM user_role ORDER BY ur_name ASC";
+		$select = $db->select($sql);
+		$this->roles = $select[0];
+		//print_r($this->roles);
+	}
+	
+	public function deleteRole(){
+		echo $id = portion(3);
+		$db = new Db();
+		$sql = "DELETE FROM access_rights WHERE ar_role_id = '$id'";
+		$select = @$db->query(@$sql);
+		echo $db->error();
+		 $sql = "DELETE FROM user_role WHERE ur_id = '$id'";
+		$select = $db->query($sql);
+		echo $db->error();
+		
+		if($select){
+			FeedBack::success('Deleting. Please wait ...');
+			FeedBack::refresh(1,return_url().'access-rights/all-user-rights-and-privileges');
+		}else{
+			FeedBack::error('Not Deleted '.$db->error());
+		}
+	}
+	
+	public function getUserRole($id){
+		$db = new Db();
+		
+		$sql = "SELECT ur_id, ur_name, ur_added_by, ur_date_added FROM user_role WHERE ur_id = '$id'";
+		$select = $db->select($sql);
+		return $select[0];
+	}
+	
+	public function addUserRoleAndPrivilegesAction(){
+		$x = new AccessRights();
+		?>
+			<div class="center" id="error">
+				 <?php
+				if(isset($error))
+				  {
+					foreach($error as $error)
+					  {
+						?>
+						<div class="<?php echo $call_alert; ?>">
+						  <i class="glyphicon glyphicon-warning-sign"></i> &nbsp; 
+						  <?php echo $error; ?>
+						  </div>
+						  <?php
+						}
+					  }
+					  ?>
+			</div>
+		</div>
+		<div class="forms-grids">
+			<?php
+			
+			$db = new Db();
+			
+			if(isset($_POST['submit'])){
+				
+				$role_name = $_POST['role_name'];
+				$pages = $_POST['name'];
+				$time = time();
+				$user_id = user_id();
+				
+				$insert = $db->insert("user_role", ["ur_name"=>$role_name, "ur_added_by"=>$user_id, "ur_date_added"=>$time]);
+				
+				echo $db->error();
+				
+				$role_id = $db->last_id();//get role id after inserting
+				
+				for($i=0; $i<count($pages); $i++){
+					
+					$page_name = $pages[$i];
+					$re = array();
+					
+					foreach($x->controls as $key => $control){	
+						$key = strtolower($key);
+						$key1 = $_POST[$key.$i];
+						$re[] = $key1;						
+					}
+					$rec = "'".implode(" ', '", $received)."'";
+									
+					$insert = $db->insert("access_rights", ["ar_role_id"=>$role_id,"ar_page"=>$page_name,"ar_a"=>$re[0],"ar_v"=>$re[1],"ar_e"=>$re[2],"ar_d"=>$re[3],"ar_p"=>$re[4],"ar_i"=>$re[5],"ar_x"=>$re[6]]);
+					
+					$db->error();
+				}	
+
+				if(empty($db->error())){
+					FeedBack::success();
+					FeedBack::refresh(3, return_url().'access-rights/all-user-rights-and-privileges');
+				}else{
+					echo $db->error();
+				}
+				
+			}
+			?>
+			<div class="col-md-12">
+			<form data-toggle="validator" validate="true" enctype="multipart/form-data" method="post">
+				<div class="col-sm-8 panel panel-widget">
+					<div class="validation-grids widget-shadow" data-example-id="basic-forms"> 
+					<div class="input-info">
+							<h3>Role Name :</h3>
+						</div>
+						
+						<div class="form-body form-body-info">
+							
+									<div class="form-group">
+									<input type="text" required name="role_name" placeholder="Enter Role Name" class="input-block-level" value="<?php echo '';  ?>">
+									<br/><br/><p>Check Privileges Per Page :</p>
+								<?php
+								
+								
+								
+								for($j=0; $j<1; $j++){
+									echo '<br/>';
+									echo '<table>';
+									//echo '<tr><td><br/><b>'.ucwords(strtolower($x->roles[$j])).'</b><br/>'.implode($x->usersUnderRights, ", ").'</td></tr>';
+									echo '<tr valign="top">';
+									echo '<td>';
+									
+									echo '<table border="1">';
+									
+									echo '<tr valign="bottom">';
+									echo '<th rowspan="2">No.</th>';
+									echo '<th rowspan="2">PAGE</th>';
+									echo '<th colspan="8">PRIVILEGES</th>';
+									echo '</tr>';
+									
+									echo '<tr>';
+									foreach($x->controls as $key => $control){									
+										echo '<th><center>'.$key.'</center></th>';
+									}
+									echo '</tr>';
+									$q=1;
+									sort($x->pages);
+									for($i=0; $i<count($x->pages); $i++){
+										echo '<tr>';
+										echo '<td>'.($i+1).'</td>';
+										echo '<td>'.$x->pages[$i].'</td>';
+										echo '<input type="hidden" value="'.$x->pages[$i].'" name="name[]"/>';
+										
+										foreach($x->controls as $key => $control){
+											echo '<td style="width:20px"><input type="checkbox" style="width:20px" name="'.strtolower($key).$i.'" value="1" title="'.$control.' '.$x->pages[$i].'"  id="la'.$q.'"><label for="la'.$q.'"></label></td>';
+											$q++;
+										}
+										echo '</tr>';
+									}
+									
+									echo '</table>';
+									
+									echo '</td>';
+									echo '<td> &nbsp;  &nbsp; </td>';
+									echo '<td>';
+									$x->rightsKey();
+									echo '</td>';
+									echo '</tr>';
+									echo '</table>';
+								}
+								?>												
+								</div>
+								<div>
+								</div>
+								<div class="clearfix"></div>
+								<div class="bottom">
+									<div class="form-group recover-button">												
+										<button type="submit" name="submit" class="btn btn-primary pull-right">Add Role</button>
+									</div>
+								</div>
+						</div>
+					</div>
+				</div>
+				</form>
+			<div class="clearfix"></div>
+			<br/><br/><br/>
+	</div>
+		<?php
+	}
+	
+	public function allUserRightsAndPrivilegesAction(){
+		$db = new Db();
+		//get all user all accounts
+		//get the user assigned access rights for each user
+		
+		echo "<b>Total User Roles: ".count($this->roles);
+		echo '</b><br/>';
+		$all = array();
+		for($j=0; $j<count($this->roles); $j++){
+			$all[] = '<a href="#'.ucwords($this->roles[$j]['ur_name']).'"> '.ucwords($this->roles[$j]['ur_name']).'</a>';
+		}
+		echo '<ol><li>'.implode(' </li><li> ', $all).'</li></ol>';
+		echo '<br/>';
+		echo '<b>Roles And Privileges</b>';
+		for($j=0; $j<count($this->roles); $j++){
+			
+			$user_id = $this->roles[$j]['ur_id'];
+			
+			//SELECT ar_id, ar_role_id, ar_page, ar_a, ar_v, ar_e, ar_d, ar_p, ar_i, ar_x FROM access_rights WHERE 1
+			
+			$sql = "SELECT * FROM access_rights WHERE ar_role_id = '$user_id'";
+			$rows = $db->select($sql);
+			
+			echo $db->error();			
+			foreach($rows[0] as $row){
+				extract($row);
+				//echo '<pre>'; print_r($row); echo '</pre>';
+				//echo $ar_page.">>>";
+				//echo 'Userid =>'.$user_id.' j=>'.$j.'<br/>';
+				foreach($this->controls as $key => $control){									
+					//echo '<th>'.$key.'</th>';
+					//echo str_replace(' ', '_', strtolower($ar_page))."ar_".strtolower($key).$j.' ';
+					${str_replace(' ', '_', strtolower($ar_page))."ar_".strtolower($key).$j} = ${"ar_".strtolower($key)};
+				}
+				//$a++;
+				//echo '<br/>';
+			}
+			echo '<div  id="'.ucwords($this->roles[$j]['ur_name']).'"></div>';
+			echo '<table style="font-size:14px; font-family:arial;">';
+			echo '<tr><td><br/><a href="'.return_url()."access-rights/edit-user-role-and-privileges/".$this->roles[$j]['ur_id'].'" title="Edit User Roles & Right"> <b>'.($j+1).'.&nbsp;  '.ucwords(($this->roles[$j]['ur_name'])).'</b></a> &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp; <a href="#top">Back to Top</a><br/>Total Users:'.count($this->getUserRights($this->roles[$j]['ur_id'])).'<br/>'.implode($this->getUserRights($this->roles[$j]['ur_id']), ", ").' </td></tr>';
+			echo '<tr valign="top">';
+			echo '<td>';
+			
+			echo '<table border="1" cellpadding="2" cellspacing="0" style="font-size:14px; font-family:arial;">';
+			
+			echo '<tr valign="bottom">';
+			echo '<th rowspan="2">No.</th>';
+			echo '<th rowspan="2">PAGE</th>';
+			echo '<th colspan="8">PRIVILEGES</th>';
+			echo '</tr>';
+			
+			echo '<tr>';
+			foreach($this->controls as $key => $control){									
+				echo '<th  style="width:20px; text-align:center;">'.$key.'</th>';
+			}
+			echo '</tr>';
+			$ar = $t = "";
+			sort($this->pages);
+			for($i=0; $i<count($this->pages); $i++){
+				echo '<tr>';
+				echo '<td>'.($i+1).'</td>';
+				echo '<td>'.$this->pages[$i].'</td>';
+				echo '<input type="hidden" value="'.$this->pages[$i].'" name="name[]"/>';
+				$ar = $t = "";
+				foreach($this->controls as $key => $control){
+					$ar = "".str_replace(' ', '_', strtolower($this->pages[$i]));
+					//echo $ar.'ar_'.strtolower($key).$i.$j."<br/>";
+					@$t = ${$ar.'ar_'.strtolower($key).$j};
+					if($t == 1){
+						echo '<td style="width:20px; text-align:center;">&#10004;</td>';
+					}else{
+						echo '<td  style="width:20px; text-align:center;"></td>';
+					}
+				}
+				echo '</tr>';
+			}			
+			
+			echo '</table>';
+			
+			echo '</td>';
+			echo '<td> &nbsp;  &nbsp; </td>';
+			echo '<td>';
+			$this->rightsKey();
+			echo '</td>';
+			echo '</tr>';
+			echo '</table>';
+		}
+		
+		echo '<br/>';
+		echo '<br/>';
+		echo '<br/>';
+	}
+	
+	public function editUserRoleAndPrivilegesAction(){
+	$db = new Db();
+	$x = new AccessRights();
+	$y = new AccessRights();
+	$z = new AccessRights();
+	?>
+	<!--grids-->
+	<div class="grids">
+		
+		
+		<div class="progressbar-heading grids-heading">
+			<h2>Edit User Role</h2>
+			<div class="center" id="error">
+				 <?php
+				if(isset($error))
+				  {
+					foreach($error as $error)
+					  {
+						?>
+						<div class="<?php echo $call_alert; ?>">
+						  <i class="glyphicon glyphicon-warning-sign"></i> &nbsp; 
+						  <?php echo $error; ?>
+						  </div>
+						  <?php
+						}
+					  }
+					  ?>
+			</div>
+		</div>
+		<div class="forms-grids">
+			<?php
+			$id = portion(3);
+			echo '<a href="'.return_url()."access-rights/delete-role/".$id.'" class="btn btn-danger pull-right">Delete Role</a>';
+			
+			$user = $this->getUserRole($id);
+
+			extract($user[0]);
+			
+			$sql = "SELECT * FROM access_rights WHERE ar_role_id = '$ur_id'";
+			$db = new Db();
+			$rows = $db->select($sql);
+			//print_r($rows);
+			$a = $j = 0;
+			foreach($rows[0] as $row){
+				extract($row);
+				//echo '<pre>'.print_r($row).'</pre>';
+				//echo 'Userid =>'.$user_id.' j=>'.$j.'<br/>';
+				
+				foreach($this->controls as $key => $control){									
+					//echo '<th>'.$key.'</th>';
+					//echo ${"ar_".strtolower($key)}.'<br/>';
+					//echo str_replace(' ', '_', strtolower($ar_page))."ar_".strtolower($key).$j.' ';
+					${str_replace(' ', '_', strtolower($ar_page))."ar_".strtolower($key).$j} = ${"ar_".strtolower($key)};
+				}
+				$a++;
+				//echo '<br/>';
+			}
+			
+			if(isset($_POST['submit'])){
+				
+				$role_name = $_POST['role_name'];
+				$pages = $_POST['name'];
+				$time = time();
+				$user_id = user_id();
+				
+				$x = $db->update("user_role", ["ur_name"=>$role_name], ['ur_id'=>$id]);
+															
+				for($i=0; $i<count($pages); $i++){
+					
+					$page_name = $pages[$i];
+					$received = array();
+					
+					$sql = "SELECT * FROM access_rights WHERE ar_page ='$page_name' AND ar_role_id = '$id'";
+					$insert = $db->select($sql);
+					echo $db->error();
+					if($db->num_rows()){
+						$received1 = array();
+						//$received1["ar_role_id"] = $id;						
+						foreach($this->controls as $key => $control){	
+							$key = strtolower($key);
+							$key1 = $_POST[$key.$i];
+							$received1["ar_$key"] = $key1;	
+						}
+						//echo $all = implode(', ',$received1);
+						//$x = $db->update("access_rights", $received1, ["ar_page" => "$page_name"]);
+						$x = $db->update("access_rights", $received1, ["ar_role_id"=>$id, "ar_page" => "$page_name"]);
+						echo $db->error();
+						//$sql = "UPDATE access_rights SET ar_role_id = '$id', $rec1  WHERE ar_role_id = '$id' AND ar_page = '$page_name'";
+						//$insert = $db->query($sql);
+					}else{
+						$received1 = array();
+						$received1["ar_role_id"] = $id;
+						$received1["ar_page"] = "$page_name";
+						foreach($this->controls as $key => $control){	
+							$key = strtolower($key);
+							$key1 = $_POST[$key.$i];
+							$received1["ar_$key"] = $key1;			
+						}
+						
+						$x = $db->insert("access_rights",$received1);
+												
+					}
+				}	
+
+				if($insert){
+					FeedBack::success();
+					FeedBack::refresh(3, return_url()."access-rights/all-user-rights-and-privileges");
+				}else{
+					echo $db->error();
+				}
+				
+				
+				
+			}
+			?>
+			<div class="col-md-12">
+			<form data-toggle="validator" validate="true" enctype="multipart/form-data" method="post">
+				<div class="col-sm-8 panel panel-widget">
+					<div class="validation-grids widget-shadow" data-example-id="basic-forms"> 
+					<div class="input-info">
+							<h3>Role Name :</h3>
+						</div>
+						
+						<div class="form-body form-body-info">
+							
+									<div class="form-group">
+									<input type="text" name="role_name" placeholder="Enter Role Name" class="input-block-level" value="<?php echo $ur_name;  ?>">
+									<br/><br/><p>Check Privileges Per Page :</p>
+								<?php
+								
+								$sql = "SELECT `ur_id`, `ur_name`, `ur_added_by`, `ur_date_added` FROM `user_role` ORDER BY ur_name ASC";
+								$select = $db->select($sql);
+								
+								for($j=0; $j<1; $j++){
+									echo '<br/>';
+									echo '<table style="font-size:14px; font-family:arial;">';
+									echo '<tr valign="top">';
+									echo '<td>';
+									echo '<table border="1" cellpadding="2" cellspacing="0" style="font-size:16px; font-family:arial;">';
+
+									echo '<tr valign="bottom">';
+									echo '<th rowspan="2">No.</th>';
+									echo '<th rowspan="2">PAGE</th>';
+									echo '<th colspan="8">PRIVILEGES</th>';
+									echo '</tr>';
+									
+									echo '<tr>';
+									foreach($this->controls as $key => $control){									
+										echo '<th  style="width:20px; text-align:center;">'.$key.'</th>';
+									}
+									echo '</tr>';
+									$ar = $t = "";
+									sort($this->pages);
+									$q=1;
+									for($i=0; $i<count($this->pages); $i++){
+										echo '<tr>';
+										echo '<td>'.($i+1).'</td>';
+										echo '<td>'.$this->pages[$i].'</td>';
+										echo '<input type="hidden" value="'.$this->pages[$i].'" name="name[]"/>';
+										$ar = $t = "";
+										
+										foreach($this->controls as $key => $control){
+											$ar = "".str_replace(' ', '_', strtolower($this->pages[$i]));
+											//echo $ar.'ar_'.strtolower($key).$i.$j."<br/>";
+											@$t = ${$ar.'ar_'.strtolower($key).$j};
+											if($t==1){
+												echo '<td style="width:20px"><input type="checkbox" checked="checked" style="width:20px" name="'.strtolower($key).$i.'" value="1" title="'.$control.' '.$this->pages[$i].'"  id="la'.$q.'"><label for="la'.$q.'"></label></td>';
+											}else{
+												echo '<td style="width:20px"><input type="checkbox" style="width:20px" name="'.strtolower($key).$i.'" value="1" title="'.$control.' '.$this->pages[$i].'"  id="la'.$q.'"><label for="la'.$q.'"></label></td>';
+											}
+											$q++;
+											
+										}
+										echo '</tr>';
+									}			
+									
+									echo '</table>';
+									
+									echo '</td>';
+									echo '<td> &nbsp;  &nbsp; </td>';
+									echo '<td>';
+									$this->rightsKey();
+									echo '</td>';
+									echo '</tr>';
+									echo '</table>';
+								}
+								?>												
+								</div>
+								<div class="clearfix"></div>
+								<div class="bottom">
+									<div class="form-group ">												
+										<button type="submit" name="submit" class="btn btn-primary">Edit Role</button>
+									</div>
+								</div>
+						</div>
+					</div>
+				</div>
+				</form>
+			<div class="clearfix"></div>
+			<br/><br/><br/>
+	</div>
+	<!--//grids-->
+	<?php
+	}
+	
+	public function rightsKey(){
+		echo '<table border="1" cellpadding="2" cellspacing="0" style="font-size:14px; font-family:arial;">';
+		
+		echo '<tr>';
+		echo '<th colspan="2">KEY</th>';
+		echo '</tr>';
+		
+		echo '<tr>';
+		echo '<th>SYM</th>';
+		echo '<th>MEANING</th>';
+		echo '</tr>';
+
+		foreach($this->controls as $key => $control){
+			echo '<tr>';
+			echo '<td  style="text-align:center;">'.$key.'</td>';
+			echo '<td>'.$control.'</td>';
+			echo '</tr>';
+		}
+		echo '</table>';
+	}
+	
+	public function showPages(){
+		sort($this->pages);
+		echo '<ol><li>'.implode('</li><li>', $this->pages).'</li></ol>';
+	}
+		
+	public function pageAccess($user_id, $page, $right){
+		
+		if(!in_array(strtoupper($page), $this->pages)){
+			//echo $page."NOT KNOWN !!!<br/> Enter one of the following pages:<br/> ".implode(", ", $this->pages);
+			return 0;
+		}else{
+			$db = new Db();
+			$right = 'ar_'.strtolower($right);
+			
+			$sql = "SELECT user_role FROM sysuser WHERE user_id = '$user_id'";
+			$select = $db->select($sql);
+			extract($select[0][0]);
+			
+			$sql = "SELECT $right FROM access_rights WHERE ar_page = '$page' AND ar_role_id = '$user_role'";
+			extract(@$db->select($sql)[0][0]);
+			
+			if($$right == 0){
+				//echo '<H1><center style="color:red;">YOU DONT HAVE ACCESS TO THIS PAGE</center></H1>';
+				echo '<meta http-equiv="refresh" content="0;'.return_url().'dashboard/index"/> ';
+			}else{
+				//echo 'ACCESS';
+			}
+		}
+				
+	}
+		
+	public function sectionAccess($user_id, $page, $right){
+		
+		if(!in_array(strtoupper($page), $this->pages)){
+			//echo $page." NOT KNOWN !!!<br/> Enter one of the following pages:<br/> ".implode(", ", $this->pages);
+			return 0;
+		}else{
+			$db = new Db();
+			$right = 'ar_'.strtolower($right);
+			
+			$sql = "SELECT user_role FROM sysuser WHERE user_id = '$user_id'";
+			$select = $db->select($sql);
+			extract(@$select[0][0]);
+			
+			$sql = "SELECT $right FROM access_rights WHERE ar_page = '$page' AND ar_role_id = '$user_role'";
+			extract(@$db->select($sql)[0][0]);
+			//echo $$right;
+			return $$right;
+		}
+		
+	}
+		
+}
+
+//$x = new AccessRights();
+
+//$x->viewAll();
